@@ -1,0 +1,71 @@
+#Here we have given the full code and we are also attaching a .ipynb file.
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt   # here importing 3 files
+books = pd.read_csv('BX-Books.csv', sep=';', error_bad_lines=False, encoding="latin-1")
+books.columns = ['ISBN', 'bookTitle', 'bookAuthor', 'yearOfPublication', 'publisher', 'imageUrlS', 'imageUrlM', 'imageUrlL'] #names of those columns which is inside the  book dataset
+users = pd.read_csv('BX-Users.csv', sep=';', error_bad_lines=False, encoding="latin-1") #reading the users  dataset
+users.columns = ['userID', 'Location', 'Age'] #Name of those columns which is inside user dataset
+ratings = pd.read_csv('BX-Book-Ratings.csv', sep=';', error_bad_lines=False, encoding="latin-1") #reading the users ratings
+ratings.columns = ['userID', 'ISBN', 'bookRating'] #Name of those columns which is inside ratings dataset
+
+print(ratings.shape) #printing the size of the dataset
+print(list(ratings.columns))  #printing the names of the columns of rating dataset 
+ratings.head() #showing the information
+
+plt.rc("font", size=15)
+ratings.bookRating.value_counts(sort=False).plot(kind='bar')
+plt.title('Rating Distribution \n')
+plt.xlabel('Rating')
+plt.ylabel('Count')
+plt.savefig('system.png',bbox_inches='tight')
+plt.show()
+
+print(books.shape)#printing the size of the dataset
+print(list(books.columns)) # printing the names of the columns of books dataset
+books.head()#printing the details of the books dataset
+
+print(users.shape) #printing the dataset
+print(list(users.columns))#printing the name of the user dataset
+users.head()# showing the dateails of the users
+
+users.Age.hist(bins=[0,10,20,30,40,50,100]) #printing the histogram by taking age of user as a list
+plt.title('Age Distribution\n')
+plt.xlabel('Age')
+plt.ylabel('count')
+plt.savefig('system2.png',bbox_inches='tight')#adjusting the size of the boxes of histogram
+plt.show()#showing the final result of the histogram
+
+rating_count = pd.DataFrame(ratings.groupby('ISBN')['bookRating'].count())#couting the no. of ratings of the dataset
+rating_count.sort_values('bookRating',ascending = False).head() # sorting the information of the dataset in descending order
+
+most_rated_books = pd.DataFrame(['0971880107','0316666343','0385504209','0060928336','0312195516'], index=np.arange(5),columns=['ISBN'])
+most_rated_books_summary = pd.merge(most_rated_books, books, on='ISBN')#calling the most rated book summary
+most_rated_books_summary#printing the most rated books information
+
+average_rating = pd.DataFrame(ratings.groupby('ISBN')['bookRating'].mean()) #creating the mean of all the ratings 
+average_rating['ratingCount']=pd.DataFrame(ratings.groupby('ISBN')['bookRating'].count())
+average_rating.sort_values('ratingCount',ascending=False).head()#sorting in descending order
+
+counts1 = ratings['userID'].value_counts()
+ratings = ratings[ratings['userID'].isin(counts1[counts1 >=200].index)]#printing the rating of userid whose counts are more than or equal to 200
+counts = ratings['bookRating'].value_counts()
+ratings = ratings[ratings['bookRating'].isin(counts[counts>=100].index)]#Printing the booksRating no. with the count of more than or equal to 100 
+
+ratings_pivot=ratings.pivot(index='userID',columns='ISBN').bookRating#creating the table of relation between ISBN and userID after linking with each other
+userID=ratings_pivot.index
+ISBN=ratings_pivot.columns
+print(ratings_pivot.shape)#printing the reshaped data
+ratings_pivot.head()#returning the reshaped data in the format of rows and columns
+
+bones_ratings = ratings_pivot['0316666343']
+similar_to_bones = ratings_pivot.corrwith(bones_ratings)
+corr_bones = pd.DataFrame(similar_to_bones, columns = ['pearsonR'])#rearranging according to the ratings given by the user
+corr_bones.dropna(inplace=True) #Removing all the NaN 
+corr_summary = corr_bones.join(average_rating['ratingCount'])
+corr_summary[corr_summary['ratingCount']>=300].sort_values('pearsonR',ascending = False).head(10)#showing the ratings in increasing order
+
+books_corr_to_bones = pd.DataFrame(['0312291639','0316601950','0446610038','0446672211','0385265700','0345342968','0060930535','0375707972','0684872153'],index = np.arange(9),columns = ['ISBN'])
+corr_books = pd.merge(books_corr_to_bones, books, on='ISBN')
+corr_books #After merging all the files printing the full details of the books in increasing order ratings format
